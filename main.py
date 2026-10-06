@@ -19,6 +19,8 @@ class Plugin:
         self.home = Path(decky.DECKY_USER_HOME)
         self.settings_dir = Path(decky.DECKY_PLUGIN_SETTINGS_DIR)
         self.settings_dir.mkdir(parents=True, exist_ok=True)
+        self.runtime_dir = Path(decky.DECKY_PLUGIN_RUNTIME_DIR)
+        self.runtime_dir.mkdir(parents=True, exist_ok=True)
         self.settings_file = self.settings_dir / "receivers.json"
         self.endpoints = self._read_endpoints()
         self.jobs = {}
@@ -65,20 +67,24 @@ class Plugin:
     async def start_export(self, clip_id: str, destination: str):
         if self.busy:
             raise RuntimeError("Another export is still running")
-        clips = await asyncio.to_thread(list_clips, self.home)
-        clip = next((c for c in clips if c["id"] == clip_id), None)
-        if clip is None:
-            raise ValueError("Clip was not found. Refresh the list")
-        endpoint = None
-        if destination != "local":
-            endpoint = next((e for e in self.endpoints if e["id"] == destination), None)
-            if endpoint is None:
-                raise ValueError("Receiver was not found. Pair it again")
-        job_id = secrets.token_hex(8)
-        self.jobs[job_id] = {"state": "working", "message": "Starting export"}
         self.busy = True
-        asyncio.create_task(self._run_export(job_id, clip, endpoint))
-        return job_id
+        try:
+            clips = await asyncio.to_thread(list_clips, self.home)
+            clip = next((c for c in clips if c["id"] == clip_id), None)
+            if clip is None:
+                raise ValueError("Clip was not found. Refresh the list")
+            endpoint = None
+            if destination != "local":
+                endpoint = next((e for e in self.endpoints if e["id"] == destination), None)
+                if endpoint is None:
+                    raise ValueError("Receiver was not found. Pair it again")
+            job_id = secrets.token_hex(8)
+            self.jobs[job_id] = {"state": "working", "message": "Starting export"}
+            asyncio.create_task(self._run_export(job_id, clip, endpoint))
+            return job_id
+        except Exception:
+            self.busy = False
+            raise
 
     async def _run_export(self, job_id, clip, endpoint):
         def progress(message):
@@ -96,7 +102,7 @@ class Plugin:
                 await asyncio.to_thread(export_clip, clip, target, progress)
                 message = f"Saved to {target}"
             else:
-                with tempfile.TemporaryDirectory(prefix="decky-clip-upload-") as temp:
+                with tempfile.TemporaryDirectory(prefix="decky-clip-upload-", dir=self.runtime_dir) as temp:
                     target = Path(temp) / output_name(clip)
                     await asyncio.to_thread(export_clip, clip, target, progress)
                     result = await asyncio.to_thread(upload_file, endpoint, target, progress)

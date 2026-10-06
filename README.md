@@ -50,7 +50,9 @@ The receiver uses plain HTTP, so use it only on a trusted home network. Do not f
 
 The plugin finds clips under Steam's `userdata/*/gamerecordings/clips` directories. It gets the game ID, date, and recording order from `clip.pb`, and game names from local Steam `appmanifest_*.acf` files. If a game manifest is unavailable, it shows `App <ID>`. It lists saved clips; it does not export the unsaved rolling recording buffer. `ffmpeg` must be available on the Deck (it is included in standard SteamOS installations).
 
-The UI and receiver have been built and tested locally, including conversion of a 3:12 Steam clip and a paired upload. The plugin has not yet been exercised on Steam Deck hardware.
+Exports use temporary files in the destination's storage, with a free-space check before starting. Allow roughly twice the size of the raw clip plus 64 MiB of free space.
+
+The package has been tested on macOS and Linux with local export and paired upload, including a 3:12 Steam clip. The Decky menu has automated interaction tests. Steam Deck Gaming Mode itself has not been tested, so these tests do not establish full on-device compatibility. The Deck plugin requests no root access and writes only to its settings/runtime directories and the user's Videos folder.
 
 ## Build from source
 
@@ -58,8 +60,11 @@ The UI and receiver have been built and tested locally, including conversion of 
 npm ci
 npm run typecheck
 npm run build
+npm run test:ui
 python3 package_plugin.py
 python3 -m unittest discover -s tests -v
 ```
 
 `ClipExport-0.1.0.zip` is the Decky installation archive. `ClipExportKit-0.1.0.zip` also includes the computer receiver and setup instructions, without the source build dependencies.
+
+For a real saved clip, set `CLIP_SAMPLE_DIR` to its `clip_*` directory and rerun `python3 -m unittest discover -s tests -p test_integration.py -v`.

@@ -202,8 +202,18 @@ def export_clip(clip: dict, target: Path, progress=lambda _: None) -> None:
     if not ffmpeg:
         raise RuntimeError("ffmpeg is required on the Steam Deck")
     target.parent.mkdir(parents=True, exist_ok=True)
+    media_bytes = 0
+    for recording in recordings:
+        recording_dir = clip["path"] / "video" / recording["id"]
+        if not recording_dir.is_dir():
+            raise ValueError(f"Recording media is missing: {recording['id']}")
+        media_bytes += sum(part.stat().st_size for part in recording_dir.glob("*.m4s"))
+    required = 2 * media_bytes + 64 * 1024 * 1024
+    if shutil.disk_usage(target.parent).free < required:
+        gib = required / (1024 ** 3)
+        raise RuntimeError(f"Not enough free space for export; need about {gib:.1f} GiB")
     partial = target.with_name(target.name + ".partial")
-    with tempfile.TemporaryDirectory(prefix="decky-clip-") as temp:
+    with tempfile.TemporaryDirectory(prefix="decky-clip-", dir=target.parent) as temp:
         temp_dir = Path(temp)
         try:
             parts = []
