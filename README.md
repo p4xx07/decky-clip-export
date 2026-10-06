@@ -4,7 +4,7 @@ Export saved Steam Game Recording clips from Gaming Mode and send the MP4 to a p
 
 ## Set up the computer
 
-For a clean install, download [ClipExportKit-0.1.0.zip](./ClipExportKit-0.1.0.zip), unpack it on your computer, and run the commands below from the resulting `ClipExportKit` folder. A source checkout also works directly.
+For a clean install, download [ClipExportKit-0.1.1.zip](./ClipExportKit-0.1.1.zip), unpack it on your computer, and run the commands below from the resulting `ClipExportKit` folder. A source checkout also works directly.
 
 The receiver needs Python 3.10 or newer and no extra packages. Run it from this project folder:
 
@@ -34,7 +34,7 @@ The receiver then starts at login. Keep this project folder in place because the
 ## Install and pair on Steam Deck
 
 1. Start the receiver on your computer.
-2. In Decky Loader, enable **Developer mode** in settings. Under **Developer**, choose **Install Plugin from URL** and enter the installation URL printed by the receiver. You can also copy [ClipExport-0.1.0.zip](./ClipExport-0.1.0.zip) to the Deck and use **Install Plugin from ZIP File**.
+2. In Decky Loader, enable **Developer mode** in settings. Under **Developer**, choose **Install Plugin from URL** and enter the installation URL printed by the receiver. You can also copy [ClipExport-0.1.1.zip](./ClipExport-0.1.1.zip) to the Deck and use **Install Plugin from ZIP File**.
 3. Open **Clip Export** in the Decky Quick Access Menu. In **Pair a computer**, enter the receiver URL and six-digit code, then select **Pair computer**.
 4. Select a clip in the list. Choose **Send to _computer name_** or **Save MP4 on Deck**. Local saves go to `~/Videos/Steam Deck Clips` on the Deck.
 
@@ -52,7 +52,7 @@ The plugin finds clips under Steam's `userdata/*/gamerecordings/clips` directori
 
 Exports use temporary files in the destination's storage, with a free-space check before starting. Allow roughly twice the size of the raw clip plus 64 MiB of free space.
 
-The package has been tested on macOS and Linux with local export and paired upload, including a 3:12 Steam clip. The Decky menu has automated interaction tests. Steam Deck Gaming Mode itself has not been tested, so these tests do not establish full on-device compatibility. The Deck plugin requests no root access and writes only to its settings/runtime directories and the user's Videos folder.
+The package has been tested on macOS and Linux with local export and paired upload, including a 3:12 Steam clip. The Decky menu has automated interaction tests. Pairing worked on Steam Deck hardware; export after the library-path fix still needs a hardware retest. The Deck plugin requests no root access and writes only to its settings/runtime directories and the user's Videos folder.
 
 ## Build from source
 
@@ -65,6 +65,6 @@ python3 package_plugin.py
 python3 -m unittest discover -s tests -v
 ```
 
-`ClipExport-0.1.0.zip` is the Decky installation archive. `ClipExportKit-0.1.0.zip` also includes the computer receiver and setup instructions, without the source build dependencies.
+`ClipExport-0.1.1.zip` is the Decky installation archive. `ClipExportKit-0.1.1.zip` also includes the computer receiver and setup instructions, without the source build dependencies.
 
 For a real saved clip, set `CLIP_SAMPLE_DIR` to its `clip_*` directory and rerun `python3 -m unittest discover -s tests -p test_integration.py -v`.

@@ -194,6 +194,17 @@ def _join_stream(recording_dir: Path, stream: int, target: Path) -> None:
                 shutil.copyfileobj(source, out, 1024 * 1024)
 
 
+def _ffmpeg_environment() -> dict[str, str]:
+    """Let the system ffmpeg load system libraries, not Decky's bundled ones."""
+    env = os.environ.copy()
+    original = env.pop("LD_LIBRARY_PATH_ORIG", None)
+    if original:
+        env["LD_LIBRARY_PATH"] = original
+    else:
+        env.pop("LD_LIBRARY_PATH", None)
+    return env
+
+
 def export_clip(clip: dict, target: Path, progress=lambda _: None) -> None:
     recordings = clip["recordings"]
     if not recordings:
@@ -201,6 +212,7 @@ def export_clip(clip: dict, target: Path, progress=lambda _: None) -> None:
     ffmpeg = shutil.which("ffmpeg")
     if not ffmpeg:
         raise RuntimeError("ffmpeg is required on the Steam Deck")
+    ffmpeg_env = _ffmpeg_environment()
     target.parent.mkdir(parents=True, exist_ok=True)
     media_bytes = 0
     for recording in recordings:
@@ -230,7 +242,7 @@ def export_clip(clip: dict, target: Path, progress=lambda _: None) -> None:
                 command = [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-i", str(video),
                            "-i", str(audio), "-map", "0:v:0", "-map", "1:a:0", "-c", "copy",
                            "-movflags", "+faststart", "-f", "mp4", str(part)]
-                proc = subprocess.run(command, capture_output=True, text=True, timeout=3600)
+                proc = subprocess.run(command, capture_output=True, text=True, timeout=3600, env=ffmpeg_env)
                 if proc.returncode:
                     raise RuntimeError(proc.stderr.strip()[-1000:] or "ffmpeg failed")
                 parts.append(part)
@@ -244,7 +256,7 @@ def export_clip(clip: dict, target: Path, progress=lambda _: None) -> None:
                     [ffmpeg, "-hide_banner", "-loglevel", "error", "-y", "-f", "concat", "-safe", "0",
                      "-i", str(playlist), "-map", "0:v:0", "-map", "0:a:0", "-c", "copy",
                      "-movflags", "+faststart", "-f", "mp4", str(partial)],
-                    capture_output=True, text=True, timeout=3600,
+                    capture_output=True, text=True, timeout=3600, env=ffmpeg_env,
                 )
                 if proc.returncode:
                     raise RuntimeError(proc.stderr.strip()[-1000:] or "Could not join recordings")

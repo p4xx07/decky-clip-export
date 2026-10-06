@@ -20,7 +20,7 @@ from receiver.receiver import ClipReceiver
 
 
 SAMPLE = os.environ.get("CLIP_SAMPLE_DIR")
-ARCHIVE = Path(__file__).parents[1] / "ClipExport-0.1.0.zip"
+ARCHIVE = Path(__file__).parents[1] / "ClipExport-0.1.1.zip"
 
 
 @unittest.skipUnless(shutil.which("ffmpeg") and shutil.which("ffprobe") and ARCHIVE.is_file(),
@@ -49,6 +49,7 @@ class PackagedIntegrationTest(unittest.TestCase):
             )
             with patch.dict(sys.modules, {"decky": decky}), \
                  patch.dict(os.environ, {"CLIP_EXPORT_CLIPS_DIR": str(clip_root)}):
+                sys.modules.pop("clip_export", None)
                 spec = importlib.util.spec_from_file_location("decky_clip_integration", plugin_file)
                 module = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(module)
@@ -61,6 +62,44 @@ class PackagedIntegrationTest(unittest.TestCase):
                     receiver.shutdown()
                     receiver.server_close()
                     thread.join()
+
+    @unittest.skipUnless(sys.platform.startswith("linux"), "Linux shared-library loader test")
+    def test_ffmpeg_ignores_decky_bundled_libraries(self):
+        with tempfile.TemporaryDirectory() as root:
+            base = Path(root)
+            sample = Path(SAMPLE) if SAMPLE else self._make_fixture(base)
+            with zipfile.ZipFile(ARCHIVE) as archive:
+                archive.extractall(base / "plugins")
+            plugin_file = base / "plugins" / "Clip Export" / "main.py"
+            home = base / "deck-home"
+            home.mkdir()
+            clip_root = base / "clips"
+            clip_root.mkdir()
+            (clip_root / sample.name).symlink_to(sample, target_is_directory=True)
+            decky = types.SimpleNamespace(
+                DECKY_USER_HOME=str(home),
+                DECKY_PLUGIN_SETTINGS_DIR=str(home / "settings"),
+                DECKY_PLUGIN_RUNTIME_DIR=str(home / "runtime"),
+                logger=logging.getLogger("decky-library-test"),
+            )
+            with patch.dict(sys.modules, {"decky": decky}), \
+                 patch.dict(os.environ, {"CLIP_EXPORT_CLIPS_DIR": str(clip_root)}):
+                sys.modules.pop("clip_export", None)
+                spec = importlib.util.spec_from_file_location("decky_clip_library_test", plugin_file)
+                module = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(module)
+                clip = module.list_clips(home)[0]
+
+                bad_library_dir = base / "decky-bundled-libraries"
+                bad_library_dir.mkdir()
+                (bad_library_dir / "libstdc++.so.6").write_bytes(b"incompatible bundled library")
+                poisoned = {"LD_LIBRARY_PATH": str(bad_library_dir), "LD_LIBRARY_PATH_ORIG": ""}
+                with patch.dict(os.environ, poisoned):
+                    failed = subprocess.run(["ffmpeg", "-version"], capture_output=True, text=True)
+                    self.assertNotEqual(failed.returncode, 0, "Fixture did not break system ffmpeg")
+                    target = base / "export.mp4"
+                    module.export_clip(clip, target)
+            self._assert_same_media(target, sample / f"{sample.name}.mp4")
 
     def _make_fixture(self, base):
         sample = base / "clip_123_fixture"

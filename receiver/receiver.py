@@ -171,7 +171,7 @@ def main() -> None:
     default_folder = "Movies" if sys.platform == "darwin" else "Videos"
     parser.add_argument("--dest", type=Path, default=Path.home() / default_folder / "Steam Deck Clips")
     parser.add_argument("--config", type=Path, default=Path.home() / ".config" / "decky-clip-receiver" / "config.json")
-    parser.add_argument("--plugin-zip", type=Path, default=Path(__file__).resolve().parent.parent / "ClipExport-0.1.0.zip")
+    parser.add_argument("--plugin-zip", type=Path, default=Path(__file__).resolve().parent.parent / "ClipExport-0.1.1.zip")
     args = parser.parse_args()
     server = ClipReceiver((args.host, args.port), args.dest, args.config, args.plugin_zip)
     print(f"Receiving clips in: {server.destination}")

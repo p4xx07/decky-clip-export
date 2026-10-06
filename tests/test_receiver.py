@@ -57,7 +57,7 @@ class ReceiverTest(unittest.TestCase):
         self.assertEqual(list(self.destination.iterdir()), [])
 
     def test_serves_plugin_zip_for_one_time_install(self):
-        plugin_zip = Path(self.temp.name) / "ClipExport-0.1.0.zip"
+        plugin_zip = Path(self.temp.name) / "ClipExport-0.1.1.zip"
         plugin_zip.write_bytes(b"test zip bytes")
         self.server.plugin_zip = plugin_zip
         with urlopen(self.url + "/ClipExport.zip") as response:
