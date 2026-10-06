@@ -1,0 +1,10 @@
+{
+  "name": "Clip Export",
+  "author": "p4xx07",
+  "flags": [],
+  "api_version": 1,
+  "publish": {
+    "tags": ["game recording", "video", "transfer"],
+    "description": "Export Steam game clips to MP4 and send them to a paired computer."
+  }
+}
